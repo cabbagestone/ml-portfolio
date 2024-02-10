@@ -8,6 +8,9 @@ use data concepts learned from research to implement a page rank algorithm. Give
 
 ### Continuously (?)
 - get the pages
+  - Crawl the internet and follow links
+  - have some sort of limiter
+  - have a starting place based on the search term?
 - create an index of the pages
 
 ### On search
