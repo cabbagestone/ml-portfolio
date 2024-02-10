@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:${REDIS_VERSION:-latest}
+    ports:
+      - ${REDIS_PORT:-6379}:6379
+    volumes:
+      - ${REDIS_DATA_DIR:-./data}:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
