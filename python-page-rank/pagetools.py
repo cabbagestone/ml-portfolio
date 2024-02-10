@@ -1,4 +1,5 @@
-from bs4 import Tag, NavigableString, BeautifulSoup
+from collections import deque
+from bs4 import Tag, NavigableString
 from string import punctuation, whitespace
 from collections import Counter
 from redis import Redis
@@ -28,3 +29,14 @@ def redis_index_pipeline(root, url, r: Redis):
             key = f'Index:{word}'
             p.hset(key, url, count)
     p.execute()
+
+def reachable_nodes_bfs(G, start):
+    seen = set()
+    queue = deque([start])
+    while queue:
+        node = queue.popleft()
+        if node not in seen:
+            seen.add(node)
+            neighbors = set(G[node]) - seen
+            queue.extend(neighbors)
+    return seen
