@@ -12,6 +12,7 @@ def link_generator(root):
             if title and href.startswith('/wiki'):
                 yield element
 
+
 def iterate_words(root):
     for element in root.descendants:
         if isinstance(element, NavigableString):
@@ -29,6 +30,7 @@ def redis_index_pipeline(root, url, r: Redis):
             key = f'Index:{word}'
             p.hset(key, url, count)
     p.execute()
+
 
 def reachable_nodes_bfs(G, start):
     seen = set()
