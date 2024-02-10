@@ -6,7 +6,12 @@ use data concepts learned from research to implement a page rank algorithm. Give
 
 ## outline:
 
+### Continuously (?)
 - get the pages
+- create an index of the pages
+
+### On search
+- parse the indexes
 - create the graph
 - sort the graph using pagerank
 - return the results
