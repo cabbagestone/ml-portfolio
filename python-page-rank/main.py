@@ -20,18 +20,29 @@ def main():
     print("Failed to connect to Redis." + str(e))
     return
   
-  fetcher = WikiFetcher()
+  while True:
+    fetcher = WikiFetcher()
 
-  searchTerm = sys.argv[1]
-  searchURL = "https://en.wikipedia.org/wiki/Special:Search?go=Go&search="+searchTerm+"&ns0=1"
+    searchTerm = input("Enter a search term or type !help for help:")
 
-  page = fetcher.fetch_wikipedia(searchURL)
+    if searchTerm.startswith("!"):
+      if searchTerm == "!help":
+        print("type !exit to exit the program.")
+        print("type !help to see this message.")
+      elif searchTerm == "!exit":
+        print("Exiting program.")
+        sys.exit()
+      else:
+        print("Unknown command.")
 
-  redis_index_pipeline(page, searchURL, redis_client)
+    searchURL = "https://en.wikipedia.org/wiki/Special:Search?go=Go&search="+searchTerm+"&ns0=1"
 
-  for pageURL in link_generator(page):
-    print("https://en.wikipedia.org" + pageURL.get('href'))
+    page = fetcher.fetch_wikipedia(searchURL)
 
+    redis_index_pipeline(page, searchURL, redis_client)
+
+    for pageURL in link_generator(page):
+      print("https://en.wikipedia.org" + pageURL.get('href'))
 
 if __name__ == "__main__":
   main()
