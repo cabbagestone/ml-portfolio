@@ -1,6 +1,8 @@
 import numpy as np
 import networkx as nx
 
+# copied nearly verbatim from https://allendowney.github.io/DSIRP/pagerank.html
+
 def google_matrix(G, alpha=0.85):
     """Returns the Google matrix of the graph.
 

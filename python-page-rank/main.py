@@ -43,6 +43,16 @@ def main():
 
     redis_index_pipeline(page, searchURL, redis_client)
 
+    # the end result should be that I have a list of urls sorted by the index of the page and the quality of the links to the page
+    # I need to figure out how to sort the links by the quality of the links to the page
+    # I need to create a graph that connects the pages to each other
+    # also need some way to store the graph in redis
+    # there's also the index of the page to consider
+    # maybe I'll take the top ten index pages and then sort the links by the quality of the links to the page
+    # the problem there is that the quality measurement cannot be taken from that sample.
+    # so perhaps I take make a hash representing the URL, and then I store connected urls in there?
+    # doesn't sound terrible... but I feel like it's not quite there yet.
+
     for pageURL in link_generator(page):
       print("https://en.wikipedia.org" + pageURL.get('href'))
 
