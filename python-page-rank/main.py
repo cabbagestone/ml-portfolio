@@ -23,17 +23,19 @@ def main():
   while True:
     fetcher = WikiFetcher()
 
-    searchTerm = input("Enter a search term or type !help for help:")
+    searchTerm = input("Enter a search term or !help:")
 
     if searchTerm.startswith("!"):
       if searchTerm == "!help":
         print("type !exit to exit the program.")
         print("type !help to see this message.")
+        continue
       elif searchTerm == "!exit":
         print("Exiting program.")
         sys.exit()
       else:
-        print("Unknown command.")
+        print("Unknown command. Type !help for help.")
+        continue
 
     searchURL = "https://en.wikipedia.org/wiki/Special:Search?go=Go&search="+searchTerm+"&ns0=1"
 
