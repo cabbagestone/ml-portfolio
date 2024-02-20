@@ -21,7 +21,7 @@ def calculate_hybrid_score(page_url, page_rank, redis_client):
     index_score = calculate_index_score(page_url, redis_client) 
     
     normalized_page_rank = page_rank / max(page_rank.values()) 
-    normalized_index_score = index_score / ...
+    normalized_index_score = index_score / max(index_score.values())
 
     hybrid_score = 0.7 * normalized_page_rank + 0.3 * normalized_index_score  
     return hybrid_score
