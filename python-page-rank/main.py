@@ -1,78 +1,120 @@
+"""
+Module name: main
+
+Author: Cabbage Stone
+
+Date: 02-24-2024
+
+This module is responsible for interacting with a Redis database 
+and handling user search terms. 
+
+Example usage:
+
+    python main.py
+
+"""
+
 import os
 import sys
 from dotenv import load_dotenv
-from redis import Redis
+from redis import Redis, RedisError
 from wikifetcher import WikiFetcher
 from pagetools import redis_index_pipeline, link_generator
 
+
 def main():
-  load_dotenv()
+    """
+    Main function that connects to Redis, prompts the user for a search term,
+    and handles the search term by fetching the search page, creating the page index,
+    and updating relevant pagerank scores, and then returning the relevant links
+    sorted by a hybrid scoring system
+    """
+    redis_client = connect_to_redis()
 
-  redis_host = os.getenv("REDIS_HOST")
-  redis_port = os.getenv("REDIS_PORT")
+    while True:
 
-  redis_client = Redis(host=redis_host, port=redis_port)
+        search_term = input("Enter a search term or !help: ")
 
-  try:
-    redis_client.ping()
-    print("Connected to Redis successfully!")
-  except Exception as e:
-    print("Failed to connect to Redis." + str(e))
-    return
-  
-  while True:
+        if handle_command(search_term):
+            continue
+
+        handle_search_term(redis_client, search_term)
+
+
+def handle_command(search_term):
+    """
+    Function that checks to see if the search_term is a command,
+    and if so, executes the command.
+
+    Parameters:
+    - search_term: The search term entered by the user.
+
+    Returns:
+    - True if the search term was a command, False otherwise.
+    """
+    if search_term.startswith("!"):
+        if search_term == "!help":
+            print("type !exit to exit the program.")
+            print("type !help to see this message.")
+            return True
+        if search_term == "!exit":
+            print("Exiting program.")
+            sys.exit()
+        else:
+            print("Unknown command. Type !help for help.")
+            return True
+
+    return False
+
+
+def connect_to_redis():
+    """
+    Function that connects to Redis and returns the Redis client object.
+    performs a ping to check if the connection was successful.
+
+    Returns:
+    - Redis client object used to interact with Redis.
+    """
+    load_dotenv()
+
+    redis_host = os.getenv("REDIS_HOST")
+    redis_port = os.getenv("REDIS_PORT")
+
+    client = Redis(host=redis_host, port=redis_port)
+
+    try:
+        client.ping()
+        print("Connected to Redis successfully!")
+    except RedisError as e:
+        print("Failed to connect to Redis." + str(e))
+        sys.exit(1)
+
+    return client
+
+
+def handle_search_term(redis_client, search_term):
+    """
+    Function that handles the given search term by fetching the search page,
+    creating the page index, and updating relevant pagerank scores.
+
+    Parameters:
+    - redis_client: Redis client object used to interact with Redis.
+    - searchTerm: The search term entered by the user.
+    """
     fetcher = WikiFetcher()
+    search_url = (
+        "https://en.wikipedia.org/wiki/Special:Search?go=Go&search="
+        + search_term
+        + "&ns0=1"
+    )
 
-    searchTerm = input("Enter a search term or !help: ")
+    page = fetcher.fetch_wikipedia(search_url)
 
-    if searchTerm.startswith("!"):
-      if searchTerm == "!help":
-        print("type !exit to exit the program.")
-        print("type !help to see this message.")
-        continue
-      elif searchTerm == "!exit":
-        print("Exiting program.")
-        sys.exit()
-      else:
-        print("Unknown command. Type !help for help.")
-        continue
+    redis_index_pipeline(page, search_url, redis_client)
 
-    searchURL = "https://en.wikipedia.org/wiki/Special:Search?go=Go&search="+searchTerm+"&ns0=1"
+    for page_url in link_generator(page):
+        print("https://en.wikipedia.org" + page_url.get("href"))
 
-    page = fetcher.fetch_wikipedia(searchURL)
-
-    redis_index_pipeline(page, searchURL, redis_client)
-
-    # the end result should be that I have a list of urls sorted by the index of the page and the quality of the links to the page
-    # I need to figure out how to sort the links by the quality of the links to the page
-    # I need to create a graph that connects the pages to each other
-    # also need some way to store the graph in redis
-    # there's also the index of the page to consider
-    # maybe I'll take the top ten index pages and then sort the links by the quality of the links to the page
-    # the problem there is that the quality measurement cannot be taken from that sample.
-    # so perhaps I take make a hash representing the URL, and then I store connected urls in there?
-    # doesn't sound terrible... but I feel like it's not quite there yet.
-
-    # For each search term, I need to do the following:
-    # 1. Fetch the search page
-    # 2. Perform page functionality
-    # 3. Return the top 10 pages
-
-    # For every page I search, I need to do the following:
-    # 0. Check to see if the page already has an index, and therefore a pagerank
-    # 1. Create the page index
-    # 2. Update relevant pagerank scores
-    # 3. Follow connected pages if max number of pages is not reached 
-    #    (don't count pages that already have an index)
-
-    # In order to create a list of results:
-    # 1. Get the top index-scoring pages
-    # 2. Get the top page-rank scoring pages from the top index-scoring pages
-    # 3. Get the hybrid scores of these pages
-    # 4. return the list
-
-    for pageURL in link_generator(page):
-      print("https://en.wikipedia.org" + pageURL.get('href'))
 
 if __name__ == "__main__":
-  main()
+    main()
