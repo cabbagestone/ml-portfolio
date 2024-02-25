@@ -23,7 +23,7 @@ def main():
   while True:
     fetcher = WikiFetcher()
 
-    searchTerm = input("Enter a search term or !help:")
+    searchTerm = input("Enter a search term or !help: ")
 
     if searchTerm.startswith("!"):
       if searchTerm == "!help":
@@ -52,6 +52,24 @@ def main():
     # the problem there is that the quality measurement cannot be taken from that sample.
     # so perhaps I take make a hash representing the URL, and then I store connected urls in there?
     # doesn't sound terrible... but I feel like it's not quite there yet.
+
+    # For each search term, I need to do the following:
+    # 1. Fetch the search page
+    # 2. Perform page functionality
+    # 3. Return the top 10 pages
+
+    # For every page I search, I need to do the following:
+    # 0. Check to see if the page already has an index, and therefore a pagerank
+    # 1. Create the page index
+    # 2. Update relevant pagerank scores
+    # 3. Follow connected pages if max number of pages is not reached 
+    #    (don't count pages that already have an index)
+
+    # In order to create a list of results:
+    # 1. Get the top index-scoring pages
+    # 2. Get the top page-rank scoring pages from the top index-scoring pages
+    # 3. Get the hybrid scores of these pages
+    # 4. return the list
 
     for pageURL in link_generator(page):
       print("https://en.wikipedia.org" + pageURL.get('href'))
