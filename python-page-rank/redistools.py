@@ -113,3 +113,24 @@ def get_sorted_index_list_for_word(r: Redis, word):
         key=lambda x: x[1],
         reverse=True,
     )
+
+
+def get_index_for_page_for_search_term(r: Redis, search_term, url):
+    """
+    Function that returns the index score for the given page and search term.
+
+    Parameters:
+    - r: Redis client object used to interact with Redis.
+    - search_term: The search term entered by the user.
+    - url: The URL of the page to get the index score for.
+
+    Returns:
+    - The index score for the given page and search term.
+    """
+    key = f"Index:{search_term}"
+    count = r.hget(key, url)
+
+    if count is None:
+        return 0
+
+    return int(count)
