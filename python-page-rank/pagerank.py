@@ -1,9 +1,14 @@
+"""
+Module name: pagerank
+"""
+
 import numpy as np
 import networkx as nx
 
 # copied nearly verbatim from https://allendowney.github.io/DSIRP/pagerank.html
 
-def google_matrix(G, alpha=0.85):
+
+def google_matrix(graph_to_convert, alpha=0.85):
     """Returns the Google matrix of the graph.
 
     Parameters
@@ -24,28 +29,29 @@ def google_matrix(G, alpha=0.85):
     there exists a path between every pair of nodes in the graph, or else there
     is the potential of "rank sinks."
     """
-    M = np.asmatrix(nx.to_numpy_array(G))
-    N = len(G)
-    if N == 0:
-        return M
+    graph_as_matrix = np.asmatrix(nx.to_numpy_array(graph_to_convert))
+    matrix_length = len(graph_to_convert)
+    if matrix_length == 0:
+        return graph_as_matrix
 
     # Personalization vector
-    p = np.repeat(1.0 / N, N)
-    
-    # Dangling nodes
-    dangling_weights = p
-    dangling_nodes = np.where(M.sum(axis=1) == 0)[0]
+    personalization_vector = np.repeat(1.0 / matrix_length, matrix_length)
 
-    # Assign dangling_weights to any dangling nodes 
+    # Dangling nodes
+    dangling_weights = personalization_vector
+    dangling_nodes = np.where(graph_as_matrix.sum(axis=1) == 0)[0]
+
+    # Assign dangling_weights to any dangling nodes
     # (nodes with no out links)
     for node in dangling_nodes:
-        M[node] = dangling_weights
+        graph_as_matrix[node] = dangling_weights
 
-    M /= M.sum(axis=1)  # Normalize rows to sum to 1
+    graph_as_matrix /= graph_as_matrix.sum(axis=1)  # Normalize rows to sum to 1
 
-    return alpha * M + (1 - alpha) * p
+    return alpha * graph_as_matrix + (1 - alpha) * personalization_vector
 
-def pagerank_numpy(G, alpha=0.85):
+
+def pagerank_numpy(graph_to_calculate, alpha=0.85):
     """Returns the PageRank of the nodes in the graph.
 
     PageRank computes a ranking of the nodes in the graph G based on
@@ -86,15 +92,15 @@ def pagerank_numpy(G, alpha=0.85):
        The PageRank citation ranking: Bringing order to the Web. 1999
        http://dbpubs.stanford.edu:8090/pub/showDoc.Fulltext?lang=en&doc=1999-66&format=pdf
     """
-    if len(G) == 0:
+    if len(graph_to_calculate) == 0:
         return {}
-    M = google_matrix(G, alpha)
-    
+    google_matrix_from_graph = google_matrix(graph_to_calculate, alpha)
+
     # use numpy LAPACK solver
-    eigenvalues, eigenvectors = np.linalg.eig(M.T)
-    ind = np.argmax(eigenvalues)
+    eigenvalues, eigenvectors = np.linalg.eig(google_matrix_from_graph.T)
+    indices = np.argmax(eigenvalues)
 
     # eigenvector of largest eigenvalue is at ind, normalized
-    largest = np.array(eigenvectors[:, ind]).flatten().real
+    largest = np.array(eigenvectors[:, indices]).flatten().real
     norm = float(largest.sum())
-    return dict(zip(G, map(float, largest / norm)))
+    return dict(zip(graph_to_calculate, map(float, largest / norm)))

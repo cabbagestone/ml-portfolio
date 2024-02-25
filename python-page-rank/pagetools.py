@@ -1,31 +1,45 @@
-from bs4 import Tag, NavigableString
+"""
+Module Name: pagetools
+"""
+
 from string import punctuation, whitespace
-from collections import Counter
-from redis import Redis
+
+from bs4 import NavigableString, Tag
+
 
 def link_generator(root):
+    """
+    Function that generates links from the given root BeautifulSoup object.
+
+    Parameters:
+    - root: The root BeautifulSoup object to generate links from.
+
+    Yields:
+    - The next link in the root BeautifulSoup object.
+    """
+
     for element in root.descendants:
-        if isinstance(element, Tag) and element.name == 'a':
-            title = element.get('title', '')
-            href = element.get('href', '')
-            if title and href.startswith('/wiki'):
+        if isinstance(element, Tag) and element.name == "a":
+            title = element.get("title", "")
+            href = element.get("href", "")
+            if title and href.startswith("/wiki"):
                 yield element
 
 
 def iterate_words(root):
+    """
+    Function that iterates over the words in the given root BeautifulSoup object.
+
+    Parameters:
+    - root: The root BeautifulSoup object to iterate over.
+
+    Yields:
+    - The next word in the root BeautifulSoup object.
+    """
+
     for element in root.descendants:
         if isinstance(element, NavigableString):
             for word in element.string.split():
                 word = word.strip(whitespace + punctuation)
                 if word:
                     yield word.lower()
-
-
-def redis_index_pipeline(root, url, r: Redis):
-    counter = Counter(iterate_words(root))
-    p = r.pipeline(transaction=False)
-    for word, count in counter.items():
-        if count >= 3:
-            key = f'Index:{word}'
-            p.hset(key, url, count)
-    p.execute()

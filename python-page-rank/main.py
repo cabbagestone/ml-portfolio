@@ -14,12 +14,12 @@ Example usage:
 
 """
 
-import os
 import sys
-from dotenv import load_dotenv
-from redis import Redis, RedisError
+from collections import deque
+
+from pagetools import link_generator, iterate_words
+from redistools import connect_to_redis, redis_index_pipeline
 from wikifetcher import WikiFetcher
-from pagetools import redis_index_pipeline, link_generator
 
 
 def main():
@@ -67,31 +67,6 @@ def handle_command(search_term):
     return False
 
 
-def connect_to_redis():
-    """
-    Function that connects to Redis and returns the Redis client object.
-    performs a ping to check if the connection was successful.
-
-    Returns:
-    - Redis client object used to interact with Redis.
-    """
-    load_dotenv()
-
-    redis_host = os.getenv("REDIS_HOST")
-    redis_port = os.getenv("REDIS_PORT")
-
-    client = Redis(host=redis_host, port=redis_port)
-
-    try:
-        client.ping()
-        print("Connected to Redis successfully!")
-    except RedisError as e:
-        print("Failed to connect to Redis." + str(e))
-        sys.exit(1)
-
-    return client
-
-
 def handle_search_term(redis_client, search_term):
     """
     Function that handles the given search term by fetching the search page,
@@ -108,12 +83,27 @@ def handle_search_term(redis_client, search_term):
         + "&ns0=1"
     )
 
-    page = fetcher.fetch_wikipedia(search_url)
+    # push the page onto the deque
+    page_queue = deque([search_url])
+    max_page_searches = 100
+    current_page_searches = 0
 
-    redis_index_pipeline(page, search_url, redis_client)
+    while page_queue and current_page_searches < max_page_searches:
+        search_url = page_queue.popleft()
 
-    for page_url in link_generator(page):
-        print("https://en.wikipedia.org" + page_url.get("href"))
+        # check to see if the page has already been indexed
+        # if it has, just get the connected pages we stored for pagerank
+        # to append to the page_queue
+
+        page = fetcher.fetch_wikipedia(search_url)
+
+        # run the index pipeline for any new pages
+        word_iterator = iterate_words(page)
+        redis_index_pipeline(word_iterator, search_url, redis_client)
+
+        for page_url in link_generator(page):
+            new_url = "https://en.wikipedia.org" + page_url.get("href")
+            page_queue.append(new_url)
 
 
 if __name__ == "__main__":
