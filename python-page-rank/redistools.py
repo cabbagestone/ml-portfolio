@@ -53,3 +53,63 @@ def redis_index_pipeline(word_iterator, url, r: Redis):
             key = f"Index:{word}"
             p.hset(key, url, count)
     p.execute()
+
+
+def linked_pages(r: Redis, url):
+    """
+    Function that returns the URLs of the pages that are linked to the given URL.
+    If it doesn't exist, it returns an empty list.
+
+    Parameters:
+    - r: Redis client object used to interact with Redis.
+    - url: The URL of the page to get the linked pages for.
+
+    Returns:
+    - A list of URLs of the pages that are linked to the given URL.
+    """
+    key = f"Links:{url}"
+
+    if not r.exists(key):
+        return []
+
+    return r.smembers(key)
+
+
+def store_page_links(r: Redis, url, page_links):
+    """
+    Function that stores the URLs of the pages that are linked to the given URL.
+
+    Parameters:
+    - r: Redis client object used to interact with Redis.
+    - url: The URL of the page to store the linked pages for.
+    - linked_pages: A list of URLs of the pages that are linked to the given URL.
+    """
+    key = f"Links:{url}"
+    r.sadd(key, *page_links)
+
+    # to-do: use r.expire(key, {some_seconds}) to handle cache invalidation for page changes
+
+
+def get_sorted_index_list_for_word(r: Redis, word):
+    """
+    Function that returns a sorted list of URLs and counts for the given word.
+
+    Parameters:
+    - r: Redis client object used to interact with Redis.
+    - word: The word to get the index list for.
+
+    Returns:
+    - A list of tuples containing the URL and count for the given word.
+    """
+    key = f"Index:{word}"
+
+    page_index_scores = r.hgetall(key)
+
+    if not page_index_scores:
+        return []
+
+    return sorted(
+        ((url.decode("utf-8"), int(count)) for url, count in page_index_scores.items()),
+        key=lambda x: x[1],
+        reverse=True,
+    )

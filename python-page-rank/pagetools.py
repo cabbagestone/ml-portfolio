@@ -22,7 +22,20 @@ def link_generator(root):
         if isinstance(element, Tag) and element.name == "a":
             title = element.get("title", "")
             href = element.get("href", "")
-            if title and href.startswith("/wiki"):
+            if (
+                title
+                and href.startswith("/wiki")
+                and not href.startswith(
+                    (
+                        "/wiki/Wikipedia",
+                        "/wiki/Help",
+                        "/wiki/File",
+                        "/wiki/Special",
+                        "/wiki/Template",
+                        "/wiki/Talk",
+                    )
+                )
+            ):
                 yield element
 
 
