@@ -14,7 +14,7 @@ import heapq
 
 class PageSearchList:
     """
-    a priority queue that keeps track of the number of pages
+    a max heap priority queue that keeps track of the number of pages
     """
 
     def __init__(self, search_term, max_pages=100):
@@ -26,17 +26,12 @@ class PageSearchList:
     def add_page(self, page_url, parent_score):
         """
         Adds the given page to the list in sorted order.
-
-        negates the score so that the highest score is at the top of the heap.
         """
         heapq.heappush(self.heap, PageDatum(page_url, -parent_score))
 
     def get_page_with_highest_score(self):
         """
         Removes and returns the page with the highest score from the list.
-
-        Returns:
-        - A tuple containing the URL and score of the page with the highest score.
         """
         if self.current_page_searches >= self.max_pages:
             return None
@@ -67,11 +62,11 @@ class PageDatum:
     def __str__(self):
         return f"{self.page_url}: {self.score}"
 
-    def __lt__(self, other):
+    def __lt__(self, other: "PageDatum"):
         return self.score < other.score
 
-    def __eq__(self, other):
+    def __eq__(self, other: "PageDatum"):
         return self.score == other.score
 
-    def __gt__(self, other):
+    def __gt__(self, other: "PageDatum"):
         return self.score > other.score
