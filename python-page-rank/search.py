@@ -9,9 +9,11 @@ from redistools import (
     redis_index_pipeline,
     store_page_links,
     get_index_for_page_for_search_term,
+    get_highest_index_for_search_term,
 )
 from wikifetcher import WikiFetcher
 from pagesearchlist import PageSearchList
+from wordtools import url_relevance
 
 
 def handle_search_term(redis_client, search_term):
@@ -30,10 +32,9 @@ def handle_search_term(redis_client, search_term):
         + "&ns0=1"
     )
 
-    page_list = PageSearchList(search_term, max_pages=100)
+    page_list = PageSearchList(search_term)
     page_list.add_page(search_url, 1)
 
-    # to-do: higher preference on page urls similar to the search term
     # do in-progress adjustment for which pages to search next
     # based on the calculated index scores so far?
     # should I do the same with pagerank?
@@ -70,7 +71,10 @@ def handle_existing_page(redis_client, search_url, page_list: PageSearchList):
 
     if links:
         for link in links:
-            page_list.add_page(link, index)
+            total_score = calculate_page_score_for_searching(
+                url_relevance(link, page_list.search_term), index
+            )
+            page_list.add_page(link, total_score)
         return True
 
     return False
@@ -93,10 +97,33 @@ def handle_new_page(redis_client, search_url, page_list: PageSearchList, fetcher
         search_url,
     )
 
+    index_score = index / get_highest_index_for_search_term(
+        redis_client, page_list.search_term
+    )
+
     links = []
     for page_url in link_generator(page):
-        new_url = str("https://en.wikipedia.org" + page_url.get("href"))
-        page_list.add_page(new_url, index)
+        href = page_url.get("href")
+        new_url = str("https://en.wikipedia.org" + href)
+        word_score = url_relevance(href, page_list.search_term)
+        total_score = calculate_page_score_for_searching(word_score, index_score)
+
+        page_list.add_page(new_url, total_score)
         links.append(new_url)
 
     store_page_links(redis_client, search_url, links)
+
+
+def calculate_page_score_for_searching(word_score, index_score):
+    """
+    Function that calculates the page score for searching based on the word and index scores.
+
+    Parameters:
+    - word_score: The word score for the page.
+    - index_score: The index score for the page.
+
+    Returns:
+    - The page score for searching based on the word and index scores.
+    """
+
+    return word_score * 0.5 + index_score * 0.5
