@@ -50,8 +50,10 @@ def redis_index_pipeline(word_iterator, url, r: Redis):
     p = r.pipeline(transaction=False)
     for word, count in counter.items():
         if count >= 3:
-            key = f"Index:{word}"
-            p.hset(key, url, count)
+            hash_key = f"Index:{word}"
+            sorted_set_key = f"IndexSorted:{word}"
+            p.hset(hash_key, url, count)
+            p.zadd(sorted_set_key, {url: count})
     p.execute()
 
 
@@ -92,27 +94,29 @@ def store_page_links(r: Redis, url, page_links):
 
 def get_sorted_index_list_for_word(r: Redis, word):
     """
-    Function that returns a sorted list of URLs and counts for the given word.
+    Modified function to retrieve a sorted list of URLs and counts for the given word
+    using a Sorted Set to efficiently manage sorted data.
+
+    This version assumes that during indexing, scores (counts) for words are stored in a Sorted Set
+    with a key pattern like "IndexSorted:{word}", where each member of the set is a URL
+    and its score represents the count (or any other metric determining the order).
 
     Parameters:
     - r: Redis client object used to interact with Redis.
     - word: The word to get the index list for.
 
     Returns:
-    - A list of tuples containing the URL and count for the given word.
+    - A list of tuples containing the URL and count for the given word, sorted by count.
     """
-    key = f"Index:{word}"
+    sorted_set_key = f"IndexSorted:{word}"
 
-    page_index_scores = r.hgetall(key)
+    page_index_scores = r.zrevrange(sorted_set_key, 0, -1, withscores=True)
 
-    if not page_index_scores:
-        return []
+    sorted_list = [
+        (member.decode("utf-8"), int(score)) for member, score in page_index_scores
+    ]
 
-    return sorted(
-        ((url.decode("utf-8"), int(count)) for url, count in page_index_scores.items()),
-        key=lambda x: x[1],
-        reverse=True,
-    )
+    return sorted_list
 
 
 def get_index_for_page_for_search_term(r: Redis, search_term, url):
@@ -134,3 +138,18 @@ def get_index_for_page_for_search_term(r: Redis, search_term, url):
         return 0
 
     return int(count)
+
+
+def get_highest_index_for_search_term(r: Redis, search_term):
+    """
+    retrieve the highest index score for a search term using Sorted Sets
+    """
+    sorted_set_key = f"IndexSorted:{search_term}"
+    highest_scores = r.zrange(sorted_set_key, -1, -1, withscores=True)
+
+    if not highest_scores:
+        return 0
+
+    # The zrange will return a list of tuples [(url, score)]
+    _, highest_score = highest_scores[0]
+    return int(highest_score)
