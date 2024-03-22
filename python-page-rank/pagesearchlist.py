@@ -40,6 +40,9 @@ class PageSearchList:
         return heapq.heappop(self.heap)
 
     def __str__(self):
+        if not self.heap:
+            return f"No pages to search for {self.search_term}."
+
         return (
             f"Page search list for {self.search_term} "
             f"with {self.current_page_searches} of {self.max_pages} pages searched. "

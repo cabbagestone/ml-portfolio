@@ -2,7 +2,8 @@ from difflib import SequenceMatcher
 
 
 def url_relevance(url, search_term):
-    url, search_term = url.lower(), search_term.lower()
+    url = str(url).lower()
+    search_term = str(search_term).lower()
 
     if search_term in url:
         return 1.0

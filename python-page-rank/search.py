@@ -38,6 +38,7 @@ def handle_search_term(redis_client, search_term):
     # do in-progress adjustment for which pages to search next
     # based on the calculated index scores so far?
     # should I do the same with pagerank?
+    # Can I calculate pagerank scores while searching?
 
     while page_datum := page_list.get_page_with_highest_score():
         search_url = page_datum.page_url
@@ -51,8 +52,8 @@ def handle_search_term(redis_client, search_term):
 
     index_list = get_sorted_index_list_for_word(redis_client, search_term)
 
-    # for url, score in index_list:
-    #     print(f"{url}: {score}")
+    for url, score in index_list:
+        print(f"{url}: {score}")
 
 
 def handle_existing_page(redis_client, search_url, page_list: PageSearchList):
